@@ -54,3 +54,10 @@ export interface Isotope {
     element: ElementData;
     isotopeIndex: number;
   }
+
+  export interface Recipe {
+    id: string;
+    name: string;
+    formula: string;
+    ingredients: { z: number; count: number }[];
+  }

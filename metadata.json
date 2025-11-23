@@ -1,5 +1,5 @@
 {
   "name": "SimChem",
-  "description": "A rigorous Molecular & Nuclear Physics Simulator allowing users to build molecules and observe real-time radioactive decay chains.",
+  "description": "The Chemistry Simulator. A rigorous Molecular & Nuclear Physics Simulator allowing users to build molecules and observe real-time radioactive decay chains.",
   "requestFramePermissions": []
 }

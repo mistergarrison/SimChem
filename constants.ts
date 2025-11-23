@@ -1,5 +1,5 @@
 
-import { ElementData } from './types';
+import { ElementData, Recipe } from './types';
 
 export const ELEMENTS: ElementData[] = [
   // --- PERIOD 1 ---
@@ -128,4 +128,60 @@ export const ELEMENTS: ElementData[] = [
   { z: 116, s: "Lv", n: "Livermorium", v: 6, c: "#FC0005", iso: [{ m: 293, hl: 0.1, mode: "alpha", p: { z: 114, m: 289 } }] },
   { z: 117, s: "Ts", n: "Tennessine", v: 7, c: "#FD0003", iso: [{ m: 294, hl: 0.1, mode: "alpha", p: { z: 115, m: 290 } }] },
   { z: 118, s: "Og", n: "Oganesson", v: 8, c: "#FF0000", iso: [{ m: 294, hl: 0.1, mode: "alpha", p: { z: 116, m: 290 } }] }
+];
+
+export const RECIPES: Recipe[] = [
+    // --- BASIC & COMMON (1-7) ---
+    { id: 'h2o', name: 'Water', formula: 'H₂O', ingredients: [{z:1, count:2}, {z:8, count:1}] },
+    { id: 'co2', name: 'Carbon Dioxide', formula: 'CO₂', ingredients: [{z:6, count:1}, {z:8, count:2}] },
+    { id: 'ch4', name: 'Methane', formula: 'CH₄', ingredients: [{z:6, count:1}, {z:1, count:4}] },
+    { id: 'nh3', name: 'Ammonia', formula: 'NH₃', ingredients: [{z:7, count:1}, {z:1, count:3}] },
+    { id: 'so2', name: 'Sulfur Dioxide', formula: 'SO₂', ingredients: [{z:16, count:1}, {z:8, count:2}] },
+    { id: 'o3', name: 'Ozone', formula: 'O₃', ingredients: [{z:8, count:3}] },
+    { id: 'h2o2', name: 'Hydrogen Peroxide', formula: 'H₂O₂', ingredients: [{z:1, count:2}, {z:8, count:2}] },
+
+    // --- ACIDS (8-14) ---
+    { id: 'h2so4', name: 'Sulfuric Acid', formula: 'H₂SO₄', ingredients: [{z:1, count:2}, {z:16, count:1}, {z:8, count:4}] },
+    { id: 'hno3', name: 'Nitric Acid', formula: 'HNO₃', ingredients: [{z:1, count:1}, {z:7, count:1}, {z:8, count:3}] },
+    { id: 'h3po4', name: 'Phosphoric Acid', formula: 'H₃PO₄', ingredients: [{z:1, count:3}, {z:15, count:1}, {z:8, count:4}] },
+    { id: 'ch3cooh', name: 'Acetic Acid', formula: 'CH₃COOH', ingredients: [{z:6, count:2}, {z:1, count:4}, {z:8, count:2}] },
+    { id: 'ch2o2', name: 'Formic Acid', formula: 'CH₂O₂', ingredients: [{z:6, count:1}, {z:1, count:2}, {z:8, count:2}] },
+    { id: 'hcn', name: 'Hydrogen Cyanide', formula: 'HCN', ingredients: [{z:1, count:1}, {z:6, count:1}, {z:7, count:1}] },
+    { id: 'h2s', name: 'Hydrogen Sulfide', formula: 'H₂S', ingredients: [{z:1, count:2}, {z:16, count:1}] },
+
+    // --- ALKANES & HYDROCARBONS (15-21) ---
+    { id: 'c2h6', name: 'Ethane', formula: 'C₂H₆', ingredients: [{z:6, count:2}, {z:1, count:6}] },
+    { id: 'c3h8', name: 'Propane', formula: 'C₃H₈', ingredients: [{z:6, count:3}, {z:1, count:8}] },
+    { id: 'c4h10', name: 'Butane', formula: 'C₄H₁₀', ingredients: [{z:6, count:4}, {z:1, count:10}] },
+    { id: 'c2h4', name: 'Ethylene', formula: 'C₂H₄', ingredients: [{z:6, count:2}, {z:1, count:4}] },
+    { id: 'c2h2', name: 'Acetylene', formula: 'C₂H₂', ingredients: [{z:6, count:2}, {z:1, count:2}] },
+    { id: 'c3h4', name: 'Propyne', formula: 'C₃H₄', ingredients: [{z:6, count:3}, {z:1, count:4}] },
+    { id: 'c4h6', name: 'Butadiene', formula: 'C₄H₆', ingredients: [{z:6, count:4}, {z:1, count:6}] },
+
+    // --- ALCOHOLS & SOLVENTS (22-28) ---
+    { id: 'ch3oh', name: 'Methanol', formula: 'CH₃OH', ingredients: [{z:6, count:1}, {z:1, count:4}, {z:8, count:1}] },
+    { id: 'c2h5oh', name: 'Ethanol', formula: 'C₂H₅OH', ingredients: [{z:6, count:2}, {z:1, count:6}, {z:8, count:1}] },
+    { id: 'c3h6o', name: 'Acetone', formula: 'C₃H₆O', ingredients: [{z:6, count:3}, {z:1, count:6}, {z:8, count:1}] },
+    { id: 'ch2o', name: 'Formaldehyde', formula: 'CH₂O', ingredients: [{z:6, count:1}, {z:1, count:2}, {z:8, count:1}] },
+    { id: 'ccl4', name: 'Carbon Tetrachloride', formula: 'CCl₄', ingredients: [{z:6, count:1}, {z:17, count:4}] },
+    { id: 'chcl3', name: 'Chloroform', formula: 'CHCl₃', ingredients: [{z:6, count:1}, {z:1, count:1}, {z:17, count:3}] },
+    { id: 'c6h6', name: 'Benzene', formula: 'C₆H₆', ingredients: [{z:6, count:6}, {z:1, count:6}] },
+
+    // --- NITROGEN COMPOUNDS (29-35) ---
+    { id: 'n2h4', name: 'Hydrazine', formula: 'N₂H₄', ingredients: [{z:7, count:2}, {z:1, count:4}] },
+    { id: 'no2', name: 'Nitrogen Dioxide', formula: 'NO₂', ingredients: [{z:7, count:1}, {z:8, count:2}] },
+    { id: 'n2o', name: 'Nitrous Oxide', formula: 'N₂O', ingredients: [{z:7, count:2}, {z:8, count:1}] },
+    { id: 'ch4n2o', name: 'Urea', formula: 'CH₄N₂O', ingredients: [{z:6, count:1}, {z:1, count:4}, {z:7, count:2}, {z:8, count:1}] },
+    { id: 'c2h5no2', name: 'Glycine', formula: 'C₂H₅NO₂', ingredients: [{z:6, count:2}, {z:1, count:5}, {z:7, count:1}, {z:8, count:2}] },
+    { id: 'c2n2', name: 'Cyanogen', formula: 'C₂N₂', ingredients: [{z:6, count:2}, {z:7, count:2}] },
+    { id: 'ncl3', name: 'Nitrogen Trichloride', formula: 'NCl₃', ingredients: [{z:7, count:1}, {z:17, count:3}] },
+
+    // --- EXOTIC & INDUSTRIAL (36-42) ---
+    { id: 'sf6', name: 'Sulfur Hexafluoride', formula: 'SF₆', ingredients: [{z:16, count:1}, {z:9, count:6}] },
+    { id: 'xef4', name: 'Xenon Tetrafluoride', formula: 'XeF₄', ingredients: [{z:54, count:1}, {z:9, count:4}] },
+    { id: 'pcl5', name: 'Phosphorus Pentachloride', formula: 'PCl₅', ingredients: [{z:15, count:1}, {z:17, count:5}] },
+    { id: 'clf3', name: 'Chlorine Trifluoride', formula: 'ClF₃', ingredients: [{z:17, count:1}, {z:9, count:3}] },
+    { id: 'cocl2', name: 'Phosgene', formula: 'COCl₂', ingredients: [{z:6, count:1}, {z:8, count:1}, {z:17, count:2}] },
+    { id: 'c6h12', name: 'Cyclohexane', formula: 'C₆H₁₂', ingredients: [{z:6, count:6}, {z:1, count:12}] },
+    { id: 'c5h5n', name: 'Pyridine', formula: 'C₅H₅N', ingredients: [{z:6, count:5}, {z:1, count:5}, {z:7, count:1}] }
 ];

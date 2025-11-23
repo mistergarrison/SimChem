@@ -3,8 +3,9 @@ import React, { useState, useMemo } from 'react';
 import Sidebar from './components/Sidebar';
 import Canvas from './components/Canvas';
 import PeriodicTable from './components/PeriodicTable';
+import RecipePicker from './components/RecipePicker';
 import { ELEMENTS } from './constants';
-import { ElementData, PaletteItem } from './types';
+import { ElementData, PaletteItem, Recipe } from './types';
 
 const App: React.FC = () => {
   // Initialize palette with Hydrogen, Helium, Carbon, Oxygen, and Uranium-235
@@ -17,11 +18,13 @@ const App: React.FC = () => {
   ]);
   
   const [isTableOpen, setIsTableOpen] = useState(false);
+  const [isRecipeOpen, setIsRecipeOpen] = useState(false);
   // Slider value 0-100. 50 = 1x.
   const [sliderValue, setSliderValue] = useState(50);
-  const [isPlaying, setIsPlaying] = useState(true);
   const [clearTrigger, setClearTrigger] = useState(0);
-  const [spawnRequest, setSpawnRequest] = useState<{z: number, isoIndex: number, id: number} | null>(null);
+  // Updated: spawnRequest now optionally includes screen coordinates (client positions)
+  const [spawnRequest, setSpawnRequest] = useState<{z: number, isoIndex: number, id: number, x?: number, y?: number} | null>(null);
+  const [recipeRequest, setRecipeRequest] = useState<{recipe: Recipe, id: number} | null>(null);
 
   // Derived timeScale for physics engine
   const timeScale = useMemo(() => {
@@ -34,6 +37,9 @@ const App: React.FC = () => {
         return Math.pow(10, power);
     }
   }, [sliderValue]);
+
+  // Pause simulation if slider is at 0
+  const isPlaying = sliderValue > 0;
 
   const handleAddAtom = (el: ElementData) => {
       // Default to stable isotope or first one
@@ -58,12 +64,22 @@ const App: React.FC = () => {
       ));
   };
 
-  const handleSpawnAtom = (item: PaletteItem) => {
+  // Updated: Accepts optional position for Drag-and-Drop support
+  const handleSpawnAtom = (item: PaletteItem, pos?: {x: number, y: number}) => {
     setSpawnRequest({
         z: item.element.z,
         isoIndex: item.isotopeIndex,
-        id: Date.now()
+        id: Date.now(),
+        x: pos?.x,
+        y: pos?.y
     });
+  };
+
+  const handleSelectRecipe = (recipe: Recipe) => {
+      setRecipeRequest({
+          recipe,
+          id: Date.now()
+      });
   };
 
   return (
@@ -76,9 +92,8 @@ const App: React.FC = () => {
         sliderValue={sliderValue}
         setSliderValue={setSliderValue}
         onClear={() => setClearTrigger(prev => prev + 1)}
-        isPlaying={isPlaying}
-        onTogglePlay={() => setIsPlaying(!isPlaying)}
         onSpawnAtom={handleSpawnAtom}
+        onOpenRecipes={() => setIsRecipeOpen(true)}
       />
       
       <main className="flex-grow h-full relative bg-neutral-950">
@@ -88,6 +103,7 @@ const App: React.FC = () => {
             onAtomCountChange={() => {}}
             clearTrigger={clearTrigger}
             spawnRequest={spawnRequest}
+            recipeRequest={recipeRequest}
         />
       </main>
 
@@ -95,6 +111,12 @@ const App: React.FC = () => {
         isOpen={isTableOpen}
         onClose={() => setIsTableOpen(false)}
         onSelect={handleAddAtom}
+      />
+
+      <RecipePicker
+        isOpen={isRecipeOpen}
+        onClose={() => setIsRecipeOpen(false)}
+        onSelect={handleSelectRecipe}
       />
     </div>
   );
