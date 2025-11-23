@@ -1,99 +1,129 @@
+
+
 # Product Requirements Document (PRD)
 ## Project: MolNuSim (SimChem)
 
 ### 1. Executive Summary
-**SimChem** is a high-fidelity, browser-based educational tool designed to bridge the gap between standard molecular modeling (chemistry) and nuclear physics (decay chains). Unlike traditional visualizers that focus solely on static molecular geometry, SimChem simulates the dynamic lifespan of atoms, allowing users to observe radioactive decay, synthesize complex molecules via recipes, and interact with matter through rigorous physics simulations.
+**SimChem** is a production-grade, browser-based physics simulator designed to visualize the bridge between Molecular Chemistry and Nuclear Physics. Unlike static molecular editors, SimChem provides a continuous, real-time environment where atoms are subject to rigorous physical forces, chemical bonding rules, and probabilistic nuclear decay. It serves as an educational sandbox allowing users to observe femtosecond-scale molecular vibrations alongside billion-year-scale radioactive decay chains.
 
-### 2. Core Objectives
-1.  **Rigorous Simulation:** Adhere to scientific principles for bonding (Valency/VSEPR/Bond Order) and decay (Half-life probabilities).
-2.  **Hybrid Time Scales:** Enable users to seamlessly transition between femtosecond-scale molecular vibrations and billion-year-scale nuclear half-lives via logarithmic time dilation.
-3.  **Interactive Sandbox:** Provide a tactile environment including drag-and-drop spawning, a recipe system for synthesis, and manual tools for manipulating atomic clusters.
+### 2. Core User Experience Goals
+1.  **Scientific Fidelity:** The simulation must adhere to VSEPR geometry, Valency rules, and IUPAC element data.
+2.  **Hybrid Time-Scaling:** Users must be able to observe immediate chemical reactions (real-time) and long-term nuclear decay (accelerated time) within the same session.
+3.  **Adaptive Interaction:** The interface must provide distinct, optimized control schemes for both Mouse/Keyboard (Desktop) and Touch (Mobile/Tablet) inputs.
+4.  **Tactile Physics:** Interactions (dragging, throwing) must feel responsive and weighty. Momentum must be conserved when users release atoms.
 
 ---
 
-### 3. Functional Requirements
+### 3. Simulation Requirements (The Physics Engine)
 
-#### A. The Physics Engine
-The custom physics engine (`Canvas.tsx`) handles multiple layers of interaction simultaneously, executed in a strict order to maximize stability and chemical accuracy.
+The core simulation loop runs independently of the UI thread, utilizing a multi-layered physics integration approach (Euler integration with sub-stepping).
 
-**Layer 0: Reconfiguration (Annealing)**
-*   **Goal:** Escape local minima (e.g., forming `O-O-C` instead of `O=C=O`) and ensure atoms find their optimal configuration.
-*   **Mechanism:**
-    *   *Homonuclear Bond Check:* The engine identifies bonds between identical elements (e.g., O-O, H-H).
-    *   *Hub Detection:* If an atom involved in a homonuclear bond detects a nearby "Better Hub" (an atom with **strictly higher valency** and available slots, e.g., Carbon vs. Oxygen), the engine voluntarily severs the weaker homonuclear bond.
-    *   *Result:* This frees the atom to bond with the superior hub in the subsequent physics step.
-
-**Layer 1: Molecular Dynamics (Chemistry)**
-*   **Bodies:** Atoms are treated as soft-body circles with radii derived from atomic mass (`r ~ mass^0.33`).
+#### 3.1. Atomic Dynamics
+*   **Soft-Body Physics:** Atoms are rendered as circular bodies with radii derived from atomic mass ($r \propto m^{0.33}$).
 *   **Forces:**
-    *   *Pauli Repulsion:* Strong short-range force to prevent atom overlap.
-    *   *Bond Springs:* Hooke's Law forces with damping for bonded atoms.
-    *   *VSEPR Geometry:* Angular stiffness forces enforcing correct bond angles.
-        *   **Constraint:** Applied only to a specific set of covalent non-metals (`COVALENT_Z` set).
-        *   **Geometries:** Supports Linear (2 domains), Trigonal Planar (3), Tetrahedral (4), and expanded octet projections (Pentagonal/Hexagonal).
-*   **Advanced Bonding Logic:**
-    *   **Valency Check:** Bonds form only if `current_bonds < valency`.
-    *   **Bond Order:** Supports Single, Double, and Triple bonds.
-        *   *Visuals:* Rendered as single, double, or triple lines based on bond count between two atoms.
-    *   **Priority Heuristics:**
-        *   *Hub Priority:* Atoms prioritize bonding to partners with higher valency.
-        *   *Sigma Priority:* Atoms prioritize forming *new* connections over strengthening existing ones (Double bonding) if other candidates are nearby.
-    *   **Reactions:**
-        *   *Kinetic Insertion:* High-velocity impacts (Speed^2 > 20) allow atoms to insert themselves into existing bonds (A + B-C -> A-B-C).
-        *   *Impact Dissociation:* High-energy collisions can break bonds (radical formation), allowing saturated molecules to react.
+    *   **Pauli Repulsion:** A strong, short-range repulsive force preventing atom overlap.
+    *   **Bond Springs:** Hooke's Law constraints with damping to simulate covalent bonds.
+    *   **Global Drag:** A tuned air-resistance factor applied per sub-step (~0.995) to prevent infinite energy accumulation while ensuring smooth gliding.
+    *   **Wall Bouncing:** Atoms must collide elastically with the canvas boundaries.
+*   **Momentum Conservation (Flinging):** 
+    *   User interaction transfers velocity to the physics bodies upon release.
+    *   **Velocity Overwrite:** To prevent internal spring tension or vibration from interfering with the throw, the velocity of the entire dragged molecule must be **overwritten** (not added to) with the mouse's release velocity.
+    *   Input velocity must be normalized against physics sub-steps ($V_{physics} = V_{input} / Substeps$) to ensure accurate trajectory and speed.
 
-**Layer 2: Nuclear Physics (Decay)**
-*   **Isotope Tracking:** Every atom instance tracks its specific isotope data (Mass, Half-life).
-*   **Probabilistic Decay:**
-    *   On every tick, calculate decay probability: `P = 1 - 2^(-dt / HalfLife)`.
-    *   *Time Scale Factor:* The simulation handles time acceleration (Logarithmic scale) to make long half-lives visible.
-*   **Transmutation Events:**
-    *   **Alpha Decay:** Emission of Helium nucleus. Parent atom loses mass/protons. Visual: Yellow flash + Recoil Kick.
-    *   **Beta Decay:** Neutron -> Proton. Atomic number increases. Visual: Blue flash + Recoil Kick.
+#### 3.2. Molecular Geometry (VSEPR Implementation)
+To prevent "floppy" molecules, the engine must enforce angular constraints based on Valence Shell Electron Pair Repulsion theory.
+*   **Scope:** Applied to covalent non-metals (Groups 13-18 + H).
+*   **Domain Calculation:** Geometry is determined by steric number (Bonds + Lone Pairs).
+*   **Rigid Body Drag:** VSEPR constraints must remain **active** even while a molecule is being dragged. This ensures molecules like Water maintain their bent shape during movement, rather than trailing like a chain.
+*   **Geometries Enforced:**
+    *   **Linear:** 2 Domains (180°), e.g., $CO_2$.
+    *   **Trigonal Planar:** 3 Domains (120°), e.g., $BF_3$.
+    *   **Tetrahedral:** 4 Domains (109.5° projected to 2D), e.g., $CH_4$.
+    *   **Bent:** 3 Domains (<120°) or 4 Domains (<109.5°), e.g., $H_2O$.
+    *   **Expanded Octets:** Trigonal Bipyramidal (5) and Octahedral (6).
+*   **Force Application (Physics Update):**
+    *   **Torque Balancing:** Forces are calculated as $F = \tau / r$ to ensure torques cancel out perfectly. This prevents unequal bond lengths from inducing infinite spin (Angular Momentum Conservation).
+    *   **Order Independence:** VSEPR forces are accumulated in a buffer and applied simultaneously at the end of the step. This eliminates "first-mover" drift bias where the calculation order affects the physical outcome.
 
-**Layer 3: Reaction Gravity Wells (The "Super Crunch")**
-*   **Mechanism:** A physics-driven event used by Recipes and the Lasso tool.
-*   **Obstruction Clearing (Recipes only):** Before spawning ingredients, the engine calculates the center of mass of existing molecules near the spawn point and applies a strong outward velocity to push them away, ensuring a clean workspace.
-*   **Phases:**
-    1.  *Gathering (0-50%):* Gently pulls ingredients to a center point.
-    2.  *Compression (50-85%):* Increases force to overcome repulsion.
-    3.  *Super Crunch (85-100%):* A high-force, high-friction "Vise" state that forces atoms into a dense cluster, ensuring all neighbors are within bonding range for complex structures like SF6.
+#### 3.3. Chemistry Engine (Reactions & Annealing)
+The engine acts as a "Heuristic Chemist," actively correcting user input and facilitating reactions.
+*   **Bonding Rules:**
+    *   Bonds form only if both atoms have available valence slots.
+    *   **Bond Order:** Supports Single, Double, and Triple bonds based on electron sharing.
+*   **Reaction Dynamics:**
+    *   **Kinetic Insertion:** High-velocity atoms can impact an existing bond and insert themselves (e.g., $A + B-C \rightarrow A-B-C$).
+    *   **Impact Dissociation:** High-energy collisions can sever bonds (Radical formation).
+*   **Annealing (Error Correction):** The system must automatically "fix" energetically unfavorable configurations:
+    *   **Homonuclear Severing:** If an atom is bonded to its own type (e.g., $O-O$) but detects a "Better Hub" (higher valency, e.g., $C$) nearby, it voluntarily breaks the bond to attach to the hub.
+    *   **Acidic Correction:** Hydrogen atoms bonded to high-valency centers (like $P$ or $S$) will migrate to nearby Oxygen atoms to form Hydroxyl groups ($-OH$), mimicking acid structure.
+*   **Drag Protection:** Chemical reactions (bond breaking/forming) and Annealing logic must be **disabled** for any group of atoms currently being dragged by the user.
 
-#### B. User Interface (UI)
-
-**1. Sidebar & Palette**
-*   **Active Palette:** Users curate a specific list of atoms to work with.
-*   **Isotope Selector:** Dropdown allows switching between stable and radioactive variants (e.g., U-235 vs U-238).
-*   **Time Control:** Hybrid Linear/Logarithmic slider.
-    *   *0-50:* Linear scale (0x to 1x).
-    *   *50-100:* Logarithmic scale (1x to 10,000x) for observing long half-lives.
-*   **Drag-and-Drop:** Atoms are serialized to JSON on drag start and hydrated on drop.
-
-**2. The Periodic Table Picker**
-*   **Completeness:** Renders all 118 elements (H to Og).
-*   **Layout:** Standard 18-column grid with F-Block (Lanthanides/Actinides) separated below.
-*   **Grid Logic:** Dynamically calculates row/column positions to handle gaps in Periods 1, 2, and 3 correctly.
-*   **Selection:** Adds chosen element to the Sidebar palette.
-
-**3. Recipe Picker**
-*   **Catalog:** A library of predefined chemical compounds (Water, Acids, Hydrocarbons, etc.).
-*   **Visuals:** Displays ingredients as colored dots representing the stoichiometry.
-*   **Function:** Triggers the Obstruction Clearing -> Spawn -> Gravity Well sequence.
-
-**4. Canvas Interaction**
-*   **Lasso Tool:**
-    *   *Input:* User draws a freeform shape.
-    *   *Detection:* Uses Ray Casting algorithm (`isPointInPolygon`) to identify enclosed atoms.
-    *   *Action:* Triggers a manual Gravity Well on the selected group to force reaction.
-*   **Manipulation:** Mouse interaction allows throwing atoms (momentum transfer) or dragging molecules.
-*   **Visuals:**
-    *   Pseudo-3D shading (Radial gradients + Specular highlights).
-    *   Selection Halos: Primary halo for hovered atom, secondary halo for the entire bonded molecule group.
+#### 3.4. Nuclear Physics (Decay)
+*   **Data Source:** Each atom tracks its specific isotope (Mass, Half-Life, Decay Mode).
+*   **Probabilistic Model:** Decay occurs based on $P = 1 - 2^{-\Delta t / HL}$.
+*   **Decay Modes:**
+    *   **Alpha Decay:** Emission of simulated Alpha particles (visualized as gold sparks). Parent atom creates recoil; $Z \rightarrow Z-2$.
+    *   **Beta Decay:** Emission of Beta particles (blue sparks). $Z \rightarrow Z+1$.
+    *   **Transmutation:** The atom instance instantly changes element properties (Color, Radius, Valency) upon decay.
+    *   **Chain Reactions:** Decay products must be valid atoms that can continue the decay chain (e.g., U-238 chain down to Pb-206).
 
 ---
 
-### 4. Technical Constraints & Architecture
-*   **Stack:** React 19, TypeScript, HTML5 Canvas API.
-*   **Performance:** Optimized for 60 FPS with mutable state refs (`useRef`) avoiding React render cycles for the physics loop.
-*   **Substepping:** Physics integration runs 8 substeps per frame to ensure stability of stiff VSEPR constraints.
-*   **Data Source:** Static, immutable definitions in `constants.ts` for Elements (Z=1-118), Isotopes, and Recipes.
+### 4. Interface & Interaction Requirements
+
+#### 4.1. The "Super Crunch" (Gravity Wells)
+A specific physics mechanic used to facilitate complex molecule creation.
+*   **Trigger:** Lasso selection or Recipe Spawn.
+*   **Behavior:**
+    1.  **Clear:** Existing atoms are pushed away from the spawn center.
+    2.  **Gather:** Target atoms are pulled into a tight center point.
+    3.  **Crunch:** High friction and high force are applied to force atoms into bonding distance immediately.
+
+#### 4.2. Input Paradigms
+*   **Desktop (Mouse):**
+    *   **Drag & Drop:** Drag atoms from sidebar to canvas.
+    *   **Pan:** Drag background to move view (if implemented) or use scrollbars.
+    *   **Right-Click:** Delete atom (Context Menu).
+*   **Mobile (Touch):**
+    *   **Tap:** Spawn atom at random location.
+    *   **Long Press:** Open Isotope Selector modal.
+    *   **Ghost Drag:** Dragging vertically from the palette creates a "Ghost" element that spawns on the canvas upon release.
+    *   **Lasso:** Drawing on empty space creates a selection polygon.
+
+#### 4.3. UI Components
+*   **Responsive Layout:**
+    *   **Mobile/Overlay Mode (<1024px):** Active on phones and tablets (portrait & landscape). UI floats over the canvas to maximize viewable area. Menus are conditionally rendered (unmounted when closed) to prevent invisible interaction blocking.
+    *   **Desktop/Panel Mode (>=1024px):** Active on large screens. Fixed side panel with standard mouse interactions.
+*   **Sidebar Palette:**
+    *   Dynamic list of active elements.
+    *   Real-time isotope switching via dropdown.
+    *   **Time Slider:**
+        *   **0-50%:** Linear scale (Paused to 1x Real-time).
+        *   **50-100%:** Logarithmic scale (1x to 10,000x) for visualizing half-lives.
+*   **Periodic Table:**
+    *   Full 118-element support.
+    *   Correct IUPAC layout with separated Lanthanides/Actinides.
+    *   Color-coded categories matching atom visuals.
+*   **Recipe Picker:**
+    *   Catalog of predefined compounds (Water, Acids, Solvents).
+    *   Visual stoichiometry preview (dots representing ingredients).
+    *   Clicking spawns ingredients and triggers the "Super Crunch".
+
+---
+
+### 5. Technical Specifications
+
+*   **Framework:** React 19.
+*   **Rendering:** HTML5 `<canvas>` Context 2D.
+*   **State Management:**
+    *   **React:** UI State (Modals, Palette list, Time slider).
+    *   **Refs (Mutable):** Physics World (Atoms array, Particles array) to avoid Re-render thrashing.
+*   **Performance:**
+    *   Target 60 FPS on modern mobile devices.
+    *   Physics Sub-stepping: 8 iterations per render frame for stability.
+    *   **Drag Tuning:** Drag Coefficient fixed at 0.995 (effective ~0.96/frame) to balance glide vs. control.
+    *   Spatial Partitioning (Optional/Future): Grid-based lookups for collision optimization if object count > 500.
+*   **Visuals:**
+    *   Pseudo-3D atom rendering using Radial Gradients and Specular Highlights.
+    *   Bond rendering handles Single/Double/Triple lines dynamically.
+    *   Particle systems for explosions and decay events.

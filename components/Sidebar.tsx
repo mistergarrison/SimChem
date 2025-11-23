@@ -1,4 +1,5 @@
 
+
 import React, { useState, useRef } from 'react';
 import { PaletteItem } from '../types';
 
@@ -26,10 +27,21 @@ interface TapState {
 /**
  * Sidebar Component
  * 
- * Adaptive Layout:
- * - Mobile: Renders as an invisible overlay layer with floating interactive elements.
- * - Interaction: Tap to spawn, Long Press to change Isotope, Drag to drop on canvas.
- * - Desktop: Renders as a solid 300px wide side panel.
+ * Controls the User Interface for managing available atoms, time scale, and global actions.
+ * 
+ * Adaptive Layout Strategy:
+ * 1. **Mobile (Overlay Mode) [Viewport < 1024px]**:
+ *    - Active on Phones and Tablets (Portrait & Landscape).
+ *    - Renders as an invisible layer covering the screen.
+ *    - **Conditional Rendering**: The menu drawer is completely unmounted when closed 
+ *      to prevent ghost clicks from blocking the canvas.
+ *    - Controls (Palette, Buttons) float over the canvas.
+ *    - Supports complex Touch Gestures (Tap, Long Press, Ghost Drag).
+ * 
+ * 2. **Desktop (Panel Mode) [Viewport >= 1024px]**:
+ *    - Renders as a solid 300px wide side panel.
+ *    - Supports standard HTML5 Drag-and-Drop.
+ *    - Supports Mouse Drag-to-Scroll for the palette list.
  */
 const Sidebar: React.FC<SidebarProps> = ({
   palette,
@@ -72,7 +84,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       e.dataTransfer.effectAllowed = "copy";
   };
 
-  // --- Robust Pointer Logic (Mobile-First) ---
+  // --- Robust Pointer Logic (Mobile-First & Desktop Compatible) ---
   
   const handlePointerDown = (e: React.PointerEvent, item: PaletteItem) => {
       if (e.button !== 0) return;
@@ -86,7 +98,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           initialScrollLeft: paletteScrollRef.current?.scrollLeft || 0
       };
 
-      // Start Long Press Timer (500ms)
+      // Start Long Press Timer (500ms) for Isotope Selection
       longPressTimer.current = window.setTimeout(() => {
           if (tapRef.current) {
               setEditingItem(item);
@@ -128,13 +140,14 @@ const Sidebar: React.FC<SidebarProps> = ({
           // --- GESTURE INTENT DETECTION ---
           
           // Case 1: Vertical Drag -> Spawn Atom (Ghost Drag)
+          // Allows pulling an atom out of the palette and onto the canvas.
           if (absDy > absDx && absDy > 10) {
                setDragGhost({ item, x: e.clientX, y: e.clientY });
                (e.target as Element).setPointerCapture(e.pointerId);
           } 
           // Case 2: Horizontal Drag with MOUSE -> Manual Scroll
           // Note: We allow native Touch events to handle scrolling naturally (momentum),
-          // so we only intervene if it's a mouse.
+          // so we only intervene if it's a mouse (which doesn't natively drag-scroll divs).
           else if (e.pointerType === 'mouse' && absDx > absDy) {
                if (paletteScrollRef.current) {
                    paletteScrollRef.current.scrollLeft = tapRef.current.initialScrollLeft - dx;
@@ -254,43 +267,47 @@ const Sidebar: React.FC<SidebarProps> = ({
         </div>
     )}
 
-    <div className="flex flex-col h-full z-20 absolute inset-0 md:relative md:inset-auto md:w-[300px] pointer-events-none md:pointer-events-auto">
+    {/* Using lg: (1024px) instead of md: to ensure landscape phones stay in Mobile/Overlay mode */}
+    <div className="flex flex-col h-full z-20 absolute inset-0 lg:relative lg:inset-auto lg:w-[300px] pointer-events-none lg:pointer-events-auto">
       
       {/* ================= MOBILE UI ================= */}
       
       {/* Menu Drawer (Anchored to Bottom-Left, opens UP) */}
-      <div className={`md:hidden pointer-events-auto absolute bottom-28 left-4 w-64 bg-gray-900/95 backdrop-blur-xl border border-gray-700 rounded-xl p-5 shadow-2xl flex flex-col gap-5 z-40 transition-all duration-300 origin-bottom-left ${isMobileMenuOpen ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-4 pointer-events-none'}`}>
-          <div className="border-b border-gray-700 pb-2">
-            <h2 className="text-lg font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">SimChem Controls</h2>
-          </div>
-          <div>
-            <div className="flex justify-between items-end mb-2">
-                <label className="text-xs uppercase text-gray-500 font-bold">Time Scale</label>
-                <span className="text-xs font-mono text-blue-400">{getScaleText(sliderValue)}</span>
+      {/* CONDITIONAL RENDERING: Only mounts if open to avoid ghost interaction blocking */}
+      {isMobileMenuOpen && (
+        <div className="lg:hidden pointer-events-auto absolute bottom-28 left-4 w-64 bg-gray-900/95 backdrop-blur-xl border border-gray-700 rounded-xl p-5 shadow-2xl flex flex-col gap-5 z-40 origin-bottom-left animate-in fade-in slide-in-from-bottom-4 zoom-in-95 duration-200 max-h-[70vh] overflow-y-auto">
+            <div className="border-b border-gray-700 pb-2">
+                <h2 className="text-lg font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">SimChem Controls</h2>
             </div>
-            <input 
-                type="range" 
-                min="0" max="100" step="1"
-                value={sliderValue}
-                onChange={(e) => setSliderValue(Number(e.target.value))}
-                className="w-full h-2 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-blue-500"
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-             <button onClick={() => { onOpenRecipes(); setMobileMenuOpen(false); }} className="py-3 bg-purple-600/20 border border-purple-500/50 hover:bg-purple-600/30 text-purple-300 font-bold rounded-lg text-xs flex flex-col items-center gap-1 transition-colors">
-                <span className="text-lg">⚗️</span> Recipes
-             </button>
-             <button onClick={() => { onClear(); setMobileMenuOpen(false); }} className="py-3 bg-red-600/20 border border-red-900/50 hover:bg-red-600/30 text-red-400 font-bold rounded-lg text-xs flex flex-col items-center gap-1 transition-colors">
-                <span className="text-lg">🗑️</span> Trash
-             </button>
-          </div>
-          <button onClick={() => { onAddAtom(); setMobileMenuOpen(false); }} className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg shadow-lg text-sm transition-colors">
-            + New Atom
-          </button>
-      </div>
+            <div>
+                <div className="flex justify-between items-end mb-2">
+                    <label className="text-xs uppercase text-gray-500 font-bold">Time Scale</label>
+                    <span className="text-xs font-mono text-blue-400">{getScaleText(sliderValue)}</span>
+                </div>
+                <input 
+                    type="range" 
+                    min="0" max="100" step="1"
+                    value={sliderValue}
+                    onChange={(e) => setSliderValue(Number(e.target.value))}
+                    className="w-full h-2 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+                <button onClick={() => { onOpenRecipes(); setMobileMenuOpen(false); }} className="py-3 bg-purple-600/20 border border-purple-500/50 hover:bg-purple-600/30 text-purple-300 font-bold rounded-lg text-xs flex flex-col items-center gap-1 transition-colors">
+                    <span className="text-lg">⚗️</span> Recipes
+                </button>
+                <button onClick={() => { onClear(); setMobileMenuOpen(false); }} className="py-3 bg-red-600/20 border border-red-900/50 hover:bg-red-600/30 text-red-400 font-bold rounded-lg text-xs flex flex-col items-center gap-1 transition-colors">
+                    <span className="text-lg">🗑️</span> Trash
+                </button>
+            </div>
+            <button onClick={() => { onAddAtom(); setMobileMenuOpen(false); }} className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg shadow-lg text-sm transition-colors">
+                + New Atom
+            </button>
+        </div>
+      )}
 
       {/* Bottom Control Bar */}
-      <div className="md:hidden pointer-events-auto absolute bottom-6 left-4 right-4 z-30 flex items-center gap-3">
+      <div className="lg:hidden pointer-events-auto absolute bottom-6 left-4 right-4 z-30 flex items-center gap-3">
            {/* 1. Menu Toggle Button */}
            <button 
                 onClick={() => setMobileMenuOpen(!isMobileMenuOpen)}
@@ -340,7 +357,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       {/* ================= DESKTOP UI (Standard Sidebar) ================= */}
-      <div className="hidden md:flex flex-col w-[300px] h-full bg-gray-950 border-r border-gray-800 text-gray-200 shadow-2xl select-none pointer-events-auto">
+      <div className="hidden lg:flex flex-col w-[300px] h-full bg-gray-950 border-r border-gray-800 text-gray-200 shadow-2xl select-none pointer-events-auto">
           {/* --- Branding & Header --- */}
           <div className="p-4 border-b border-gray-800 bg-gray-900/50">
             <h1 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">

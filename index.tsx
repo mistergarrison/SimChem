@@ -1,3 +1,10 @@
+/**
+ * Application Entry Point
+ * 
+ * Mounts the React application to the DOM.
+ * Utilizes React.StrictMode to highlight potential problems in the application lifecycle.
+ */
+
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';

@@ -1,18 +1,221 @@
 
-// --- SIMULATION CONFIGURATION ---
+import { ElementData, Recipe } from '../types';
+
+export const ELEMENTS: ElementData[] = [
+  // --- PERIOD 1 ---
+  { z: 1, s: "H", n: "Hydrogen", v: 1, c: "#FFFFFF", iso: [{ m: 1.008, hl: "stable" }, { m: 3.016, hl: 500, mode: "beta", p: { z: 2, m: 3.016 }, name: "Tritium" }] },
+  { z: 2, s: "He", n: "Helium", v: 0, c: "#D9FFFF", iso: [{ m: 4.002, hl: "stable" }] },
+  // --- PERIOD 2 ---
+  { z: 3, s: "Li", n: "Lithium", v: 1, c: "#CC80FF", iso: [{ m: 6.94, hl: "stable" }] },
+  { z: 4, s: "Be", n: "Beryllium", v: 2, c: "#C2FF00", iso: [{ m: 9.01, hl: "stable" }] },
+  { z: 5, s: "B", n: "Boron", v: 3, c: "#FFB5B5", iso: [{ m: 10.81, hl: "stable" }] },
+  { z: 6, s: "C", n: "Carbon", v: 4, c: "#909090", iso: [{ m: 12.01, hl: "stable" }, { m: 14.00, hl: 5730, mode: "beta", p: { z: 7, m: 14.00 }, name: "C-14" }] },
+  { z: 7, s: "N", n: "Nitrogen", v: 3, c: "#3050F8", iso: [{ m: 14.00, hl: "stable" }] },
+  { z: 8, s: "O", n: "Oxygen", v: 2, c: "#FF0D0D", iso: [{ m: 15.99, hl: "stable" }] },
+  { z: 9, s: "F", n: "Fluorine", v: 1, c: "#90E050", iso: [{ m: 18.99, hl: "stable" }] },
+  { z: 10, s: "Ne", n: "Neon", v: 0, c: "#B3E3F5", iso: [{ m: 20.18, hl: "stable" }] },
+  // --- PERIOD 3 (Expanded Octets Enabled) ---
+  { z: 11, s: "Na", n: "Sodium", v: 1, c: "#AB5CF2", iso: [{ m: 22.99, hl: "stable" }] },
+  { z: 12, s: "Mg", n: "Magnesium", v: 2, c: "#8AFF00", iso: [{ m: 24.30, hl: "stable" }] },
+  { z: 13, s: "Al", n: "Aluminium", v: 3, c: "#BFA6A6", iso: [{ m: 26.98, hl: "stable" }] },
+  { z: 14, s: "Si", n: "Silicon", v: 4, c: "#F0C8A0", iso: [{ m: 28.08, hl: "stable" }] },
+  { z: 15, s: "P", n: "Phosphorus", v: 5, c: "#FF8000", iso: [{ m: 30.97, hl: "stable" }] },
+  { z: 16, s: "S", n: "Sulfur", v: 6, c: "#FFFF30", iso: [{ m: 32.06, hl: "stable" }] },
+  { z: 17, s: "Cl", n: "Chlorine", v: 7, c: "#1FF01F", iso: [{ m: 35.45, hl: "stable" }] },
+  { z: 18, s: "Ar", n: "Argon", v: 0, c: "#80D1E3", iso: [{ m: 39.95, hl: "stable" }] },
+  // --- PERIOD 4 (Expanded Octets Enabled) ---
+  { z: 19, s: "K", n: "Potassium", v: 1, c: "#8F40D4", iso: [{ m: 39.10, hl: "stable" }, { m: 40.00, hl: 12000, mode: "beta", p: { z: 20, m: 40.00 }, name: "K-40" }] },
+  { z: 20, s: "Ca", n: "Calcium", v: 2, c: "#3DFF00", iso: [{ m: 40.08, hl: "stable" }] },
+  { z: 21, s: "Sc", n: "Scandium", v: 3, c: "#E6E6E6", iso: [{ m: 44.96, hl: "stable" }] },
+  { z: 22, s: "Ti", n: "Titanium", v: 4, c: "#BFC2C7", iso: [{ m: 47.87, hl: "stable" }] },
+  { z: 23, s: "V", n: "Vanadium", v: 5, c: "#A6A6AB", iso: [{ m: 50.94, hl: "stable" }] },
+  { z: 24, s: "Cr", n: "Chromium", v: 6, c: "#8A99C7", iso: [{ m: 52.00, hl: "stable" }] },
+  { z: 25, s: "Mn", n: "Manganese", v: 7, c: "#9C7AC7", iso: [{ m: 54.94, hl: "stable" }] },
+  { z: 26, s: "Fe", n: "Iron", v: 3, c: "#E06633", iso: [{ m: 55.85, hl: "stable" }] },
+  { z: 27, s: "Co", n: "Cobalt", v: 2, c: "#F090A0", iso: [{ m: 58.93, hl: "stable" }, { m: 60.00, hl: 5270, mode: "beta", p: { z: 28, m: 60.00 }, name: "Co-60" }] },
+  { z: 28, s: "Ni", n: "Nickel", v: 2, c: "#50D050", iso: [{ m: 58.69, hl: "stable" }] },
+  { z: 29, s: "Cu", n: "Copper", v: 2, c: "#C88033", iso: [{ m: 63.55, hl: "stable" }] },
+  { z: 30, s: "Zn", n: "Zinc", v: 2, c: "#7D80B0", iso: [{ m: 65.38, hl: "stable" }] },
+  { z: 31, s: "Ga", n: "Gallium", v: 3, c: "#C28F8F", iso: [{ m: 69.72, hl: "stable" }] },
+  { z: 32, s: "Ge", n: "Germanium", v: 4, c: "#668F8F", iso: [{ m: 72.63, hl: "stable" }] },
+  { z: 33, s: "As", n: "Arsenic", v: 5, c: "#BD80E3", iso: [{ m: 74.92, hl: "stable" }] },
+  { z: 34, s: "Se", n: "Selenium", v: 6, c: "#FFA100", iso: [{ m: 78.96, hl: "stable" }] },
+  { z: 35, s: "Br", n: "Bromine", v: 7, c: "#A62929", iso: [{ m: 79.90, hl: "stable" }] },
+  { z: 36, s: "Kr", n: "Krypton", v: 2, c: "#5CB8D1", iso: [{ m: 83.80, hl: "stable" }] },
+  // --- PERIOD 5 (Expanded Octets Enabled) ---
+  { z: 37, s: "Rb", n: "Rubidium", v: 1, c: "#702EB0", iso: [{ m: 85.47, hl: "stable" }] },
+  { z: 38, s: "Sr", n: "Strontium", v: 2, c: "#00FF00", iso: [{ m: 87.62, hl: "stable" }, { m: 90.00, hl: 2900, mode: "beta", p: { z: 39, m: 90.00 }, name: "Sr-90" }] },
+  { z: 39, s: "Y", n: "Yttrium", v: 3, c: "#94FFFF", iso: [{ m: 88.91, hl: "stable" }, { m: 90.00, hl: 64, mode: "beta", p: { z: 40, m: 90.00 }, name: "Y-90" }] },
+  { z: 40, s: "Zr", n: "Zirconium", v: 4, c: "#94E0E0", iso: [{ m: 91.22, hl: "stable" }] },
+  { z: 41, s: "Nb", n: "Niobium", v: 5, c: "#73C2C9", iso: [{ m: 92.91, hl: "stable" }] },
+  { z: 42, s: "Mo", n: "Molybdenum", v: 6, c: "#54B5B5", iso: [{ m: 95.96, hl: "stable" }] },
+  { z: 43, s: "Tc", n: "Technetium", v: 7, c: "#3B9E9E", iso: [{ m: 99.00, hl: 211000, mode: "beta", p: { z: 44, m: 99.00 } }] },
+  { z: 44, s: "Ru", n: "Ruthenium", v: 3, c: "#248F8F", iso: [{ m: 101.1, hl: "stable" }] },
+  { z: 45, s: "Rh", n: "Rhodium", v: 3, c: "#0A7D8C", iso: [{ m: 102.9, hl: "stable" }] },
+  { z: 46, s: "Pd", n: "Palladium", v: 2, c: "#006985", iso: [{ m: 106.4, hl: "stable" }] },
+  { z: 47, s: "Ag", n: "Silver", v: 1, c: "#C0C0C0", iso: [{ m: 107.9, hl: "stable" }] },
+  { z: 48, s: "Cd", n: "Cadmium", v: 2, c: "#FFD98F", iso: [{ m: 112.4, hl: "stable" }] },
+  { z: 49, s: "In", n: "Indium", v: 3, c: "#A67573", iso: [{ m: 114.8, hl: "stable" }] },
+  { z: 50, s: "Sn", n: "Tin", v: 4, c: "#668080", iso: [{ m: 118.7, hl: "stable" }] },
+  { z: 51, s: "Sb", n: "Antimony", v: 5, c: "#9E63B5", iso: [{ m: 121.8, hl: "stable" }] },
+  { z: 52, s: "Te", n: "Tellurium", v: 6, c: "#D47A00", iso: [{ m: 127.6, hl: "stable" }] },
+  { z: 53, s: "I", n: "Iodine", v: 7, c: "#940094", iso: [{ m: 126.9, hl: "stable" }, { m: 131.0, hl: 8, mode: "beta", p: { z: 54, m: 131.0 }, name: "I-131" }] },
+  { z: 54, s: "Xe", n: "Xenon", v: 8, c: "#429EB0", iso: [{ m: 131.3, hl: "stable" }] },
+  // --- PERIOD 6 ---
+  { z: 55, s: "Cs", n: "Caesium", v: 1, c: "#57178F", iso: [{ m: 132.9, hl: "stable" }, { m: 137.0, hl: 3000, mode: "beta", p: { z: 56, m: 137.0 }, name: "Cs-137" }] },
+  { z: 56, s: "Ba", n: "Barium", v: 2, c: "#00C900", iso: [{ m: 137.3, hl: "stable" }] },
+  { z: 57, s: "La", n: "Lanthanum", v: 3, c: "#70D4FF", iso: [{ m: 138.9, hl: "stable" }] },
+  { z: 58, s: "Ce", n: "Cerium", v: 3, c: "#FFFFC7", iso: [{ m: 140.1, hl: "stable" }] },
+  { z: 59, s: "Pr", n: "Praseodymium", v: 3, c: "#D9FFC7", iso: [{ m: 140.9, hl: "stable" }] },
+  { z: 60, s: "Nd", n: "Neodymium", v: 3, c: "#C7FFC7", iso: [{ m: 144.2, hl: "stable" }] },
+  { z: 61, s: "Pm", n: "Promethium", v: 3, c: "#A3FFC7", iso: [{ m: 145.0, hl: 1770, mode: "beta", p: { z: 60, m: 145.0 } }] },
+  { z: 62, s: "Sm", n: "Samarium", v: 3, c: "#8FFFC7", iso: [{ m: 150.4, hl: "stable" }] },
+  { z: 63, s: "Eu", n: "Europium", v: 3, c: "#61FFC7", iso: [{ m: 152.0, hl: "stable" }] },
+  { z: 64, s: "Gd", n: "Gadolinium", v: 3, c: "#45FFC7", iso: [{ m: 157.3, hl: "stable" }] },
+  { z: 65, s: "Tb", n: "Terbium", v: 3, c: "#30FFC7", iso: [{ m: 158.9, hl: "stable" }] },
+  { z: 66, s: "Dy", n: "Dysprosium", v: 3, c: "#1FFFC7", iso: [{ m: 162.5, hl: "stable" }] },
+  { z: 67, s: "Ho", n: "Holmium", v: 3, c: "#00FF9C", iso: [{ m: 164.9, hl: "stable" }] },
+  { z: 68, s: "Er", n: "Erbium", v: 3, c: "#00E675", iso: [{ m: 167.3, hl: "stable" }] },
+  { z: 69, s: "Tm", n: "Thulium", v: 3, c: "#00D452", iso: [{ m: 168.9, hl: "stable" }] },
+  { z: 70, s: "Yb", n: "Ytterbium", v: 3, c: "#00BF38", iso: [{ m: 173.0, hl: "stable" }] },
+  { z: 71, s: "Lu", n: "Lutetium", v: 3, c: "#00AB24", iso: [{ m: 175.0, hl: "stable" }] },
+  { z: 72, s: "Hf", n: "Hafnium", v: 4, c: "#4DC2FF", iso: [{ m: 178.5, hl: "stable" }] },
+  { z: 73, s: "Ta", n: "Tantalum", v: 5, c: "#4DA6FF", iso: [{ m: 180.9, hl: "stable" }] },
+  { z: 74, s: "W", n: "Tungsten", v: 6, c: "#2194D6", iso: [{ m: 183.8, hl: "stable" }] },
+  { z: 75, s: "Re", n: "Rhenium", v: 7, c: "#267DAB", iso: [{ m: 186.2, hl: "stable" }] },
+  { z: 76, s: "Os", n: "Osmium", v: 4, c: "#266696", iso: [{ m: 190.2, hl: "stable" }] },
+  { z: 77, s: "Ir", n: "Iridium", v: 4, c: "#175487", iso: [{ m: 192.2, hl: "stable" }] },
+  { z: 78, s: "Pt", n: "Platinum", v: 2, c: "#D0D0E0", iso: [{ m: 195.1, hl: "stable" }] },
+  { z: 79, s: "Au", n: "Gold", v: 1, c: "#FFD123", iso: [{ m: 197.0, hl: "stable" }] },
+  { z: 80, s: "Hg", n: "Mercury", v: 2, c: "#B8B8D0", iso: [{ m: 200.6, hl: "stable" }] },
+  { z: 81, s: "Tl", n: "Thallium", v: 1, c: "#A6544D", iso: [{ m: 204.4, hl: "stable" }] },
+  { z: 82, s: "Pb", n: "Lead", v: 4, c: "#575961", iso: [{ m: 207.2, hl: "stable" }, { m: 206.0, hl: "stable", name: "Pb-206" }] },
+  { z: 83, s: "Bi", n: "Bismuth", v: 3, c: "#9E4FB5", iso: [{ m: 208.9, hl: "stable" }, { m: 210.0, hl: 5, mode: "beta", p: { z: 84, m: 210 }, name: "Bi-210" }] },
+  // --- RADIOACTIVE CHAINS (Polonium to Uranium) ---
+  { z: 84, s: "Po", n: "Polonium", v: 2, c: "#AB5C00", iso: [{ m: 210.0, hl: 138, mode: "alpha", p: { z: 82, m: 206.0 }, name: "Po-210" }, { m: 218.0, hl: 0.1, mode: "alpha", p: { z: 82, m: 214 }, name: "Po-218" }] },
+  { z: 85, s: "At", n: "Astatine", v: 1, c: "#754F45", iso: [{ m: 210.0, hl: 8, mode: "alpha", p: { z: 83, m: 206.0 } }] },
+  { z: 86, s: "Rn", n: "Radon", v: 0, c: "#428296", iso: [{ m: 222.0, hl: 4, mode: "alpha", p: { z: 84, m: 218.0 }, name: "Rn-222" }] },
+  { z: 87, s: "Fr", n: "Francium", v: 1, c: "#420066", iso: [{ m: 223.0, hl: 0.1, mode: "beta", p: { z: 88, m: 223.0 } }] },
+  { z: 88, s: "Ra", n: "Radium", v: 2, c: "#007D00", iso: [{ m: 226.0, hl: 1600, mode: "alpha", p: { z: 86, m: 222.0 }, name: "Ra-226" }] },
+  { z: 89, s: "Ac", n: "Actinium", v: 3, c: "#70ABFA", iso: [{ m: 227.0, hl: 21, mode: "beta", p: { z: 90, m: 227.0 } }] },
+  { z: 90, s: "Th", n: "Thorium", v: 4, c: "#00BAFF", iso: [{ m: 232.0, hl: 14000, mode: "alpha", p: { z: 88, m: 228.0 }, name: "Th-232" }, { m: 234.0, hl: 0.1, mode: "beta", p: { z: 91, m: 234.0 }, name: "Th-234" }] },
+  { z: 91, s: "Pa", n: "Protactinium", v: 5, c: "#00A1FF", iso: [{ m: 231.0, hl: 32000, mode: "alpha", p: { z: 89, m: 227.0 } }, { m: 234.0, hl: 0.1, mode: "beta", p: { z: 92, m: 234.0 }, name: "Pa-234" }] },
+  { z: 92, s: "U", n: "Uranium", v: 6, c: "#008FFF", iso: [{ m: 238.0, hl: 4500, mode: "alpha", p: { z: 90, m: 234.0 }, name: "U-238" }, { m: 235.0, hl: 700, mode: "alpha", p: { z: 90, m: 231.0 }, name: "U-235" }, { m: 234.0, hl: 240, mode: "alpha", p: { z: 90, m: 230.0 }, name: "U-234" }] },
+  { z: 93, s: "Np", n: "Neptunium", v: 5, c: "#0080FF", iso: [{ m: 237.0, hl: 2000, mode: "alpha", p: { z: 91, m: 233.0 } }] },
+  { z: 94, s: "Pu", n: "Plutonium", v: 4, c: "#006BFF", iso: [{ m: 239.0, hl: 24000, mode: "alpha", p: { z: 92, m: 235.0 }, name: "Pu-239" }] },
+  { z: 95, s: "Am", n: "Americium", v: 3, c: "#545CF2", iso: [{ m: 241.0, hl: 432, mode: "alpha", p: { z: 93, m: 237.0 } }] },
+  { z: 96, s: "Cm", n: "Curium", v: 3, c: "#785CE3", iso: [{ m: 247.0, hl: 15000, mode: "alpha", p: { z: 94, m: 243.0 } }] },
+  { z: 97, s: "Bk", n: "Berkelium", v: 3, c: "#8A4FE3", iso: [{ m: 247.0, hl: 1300, mode: "alpha", p: { z: 95, m: 243.0 } }] },
+  { z: 98, s: "Cf", n: "Californium", v: 3, c: "#A136D4", iso: [{ m: 251.0, hl: 900, mode: "alpha", p: { z: 96, m: 247.0 } }] },
+  { z: 99, s: "Es", n: "Einsteinium", v: 3, c: "#B31FD4", iso: [{ m: 252.0, hl: 470, mode: "alpha", p: { z: 97, m: 248.0 } }] },
+  { z: 100, s: "Fm", n: "Fermium", v: 3, c: "#B31FBA", iso: [{ m: 257.0, hl: 100, mode: "alpha", p: { z: 98, m: 253.0 } }] },
+  { z: 101, s: "Md", n: "Mendelevium", v: 3, c: "#B30DA6", iso: [{ m: 258.0, hl: 51, mode: "alpha", p: { z: 99, m: 254.0 } }] },
+  { z: 102, s: "No", n: "Nobelium", v: 2, c: "#BD0D87", iso: [{ m: 259.0, hl: 0.1, mode: "alpha", p: { z: 100, m: 255.0 } }] },
+  { z: 103, s: "Lr", n: "Lawrencium", v: 3, c: "#C70066", iso: [{ m: 262.0, hl: 0.1, mode: "alpha", p: { z: 101, m: 258.0 } }] },
+  // --- SUPERHEAVIES (Synthetic Alpha Chain Logic) ---
+  { z: 104, s: "Rf", n: "Rutherfordium", v: 4, c: "#CC0059", iso: [{ m: 267, hl: 0.1, mode: "alpha", p: { z: 102, m: 263 } }] },
+  { z: 105, s: "Db", n: "Dubnium", v: 5, c: "#D1004F", iso: [{ m: 270, hl: 0.1, mode: "alpha", p: { z: 103, m: 266 } }] },
+  { z: 106, s: "Sg", n: "Seaborgium", v: 6, c: "#D90045", iso: [{ m: 271, hl: 0.1, mode: "alpha", p: { z: 104, m: 267 } }] },
+  { z: 107, s: "Bh", n: "Bohrium", v: 7, c: "#E00038", iso: [{ m: 270, hl: 0.1, mode: "alpha", p: { z: 105, m: 266 } }] },
+  { z: 108, s: "Hs", n: "Hassium", v: 8, c: "#E6002E", iso: [{ m: 277, hl: 0.1, mode: "alpha", p: { z: 106, m: 273 } }] },
+  { z: 109, s: "Mt", n: "Meitnerium", v: 0, c: "#EB0026", iso: [{ m: 276, hl: 0.1, mode: "alpha", p: { z: 107, m: 272 } }] },
+  { z: 110, s: "Ds", n: "Darmstadtium", v: 0, c: "#ED0021", iso: [{ m: 281, hl: 0.1, mode: "alpha", p: { z: 108, m: 277 } }] },
+  { z: 111, s: "Rg", n: "Roentgenium", v: 0, c: "#EF001C", iso: [{ m: 280, hl: 0.1, mode: "alpha", p: { z: 109, m: 276 } }] },
+  { z: 112, s: "Cn", n: "Copernicium", v: 0, c: "#F20017", iso: [{ m: 285, hl: 0.1, mode: "alpha", p: { z: 110, m: 281 } }] },
+  { z: 113, s: "Nh", n: "Nihonium", v: 3, c: "#F40012", iso: [{ m: 284, hl: 0.1, mode: "alpha", p: { z: 111, m: 280 } }] },
+  { z: 114, s: "Fl", n: "Flerovium", v: 4, c: "#F7000D", iso: [{ m: 289, hl: 0.1, mode: "alpha", p: { z: 112, m: 285 } }] },
+  { z: 115, s: "Mc", n: "Moscovium", v: 5, c: "#FA0008", iso: [{ m: 288, hl: 0.1, mode: "alpha", p: { z: 113, m: 284 } }] },
+  { z: 116, s: "Lv", n: "Livermorium", v: 6, c: "#FC0005", iso: [{ m: 293, hl: 0.1, mode: "alpha", p: { z: 114, m: 289 } }] },
+  { z: 117, s: "Ts", n: "Tennessine", v: 7, c: "#FD0003", iso: [{ m: 294, hl: 0.1, mode: "alpha", p: { z: 115, m: 290 } }] },
+  { z: 118, s: "Og", n: "Oganesson", v: 8, c: "#FF0000", iso: [{ m: 294, hl: 0.1, mode: "alpha", p: { z: 116, m: 290 } }] }
+];
+
+export const RECIPES: Recipe[] = [
+    // --- BASIC & COMMON (1-7) ---
+    { id: 'h2o', name: 'Water', formula: 'H₂O', ingredients: [{z:1, count:2}, {z:8, count:1}] },
+    { id: 'co2', name: 'Carbon Dioxide', formula: 'CO₂', ingredients: [{z:6, count:1}, {z:8, count:2}] },
+    { id: 'ch4', name: 'Methane', formula: 'CH₄', ingredients: [{z:6, count:1}, {z:1, count:4}] },
+    { id: 'nh3', name: 'Ammonia', formula: 'NH₃', ingredients: [{z:7, count:1}, {z:1, count:3}] },
+    { id: 'so2', name: 'Sulfur Dioxide', formula: 'SO₂', ingredients: [{z:16, count:1}, {z:8, count:2}] },
+    { id: 'o3', name: 'Ozone', formula: 'O₃', ingredients: [{z:8, count:3}] },
+    { id: 'h2o2', name: 'Hydrogen Peroxide', formula: 'H₂O₂', ingredients: [{z:1, count:2}, {z:8, count:2}] },
+
+    // --- ACIDS (8-14) ---
+    { id: 'h2so4', name: 'Sulfuric Acid', formula: 'H₂SO₄', ingredients: [{z:1, count:2}, {z:16, count:1}, {z:8, count:4}] },
+    { id: 'hno3', name: 'Nitric Acid', formula: 'HNO₃', ingredients: [{z:1, count:1}, {z:7, count:1}, {z:8, count:3}] },
+    { id: 'h3po4', name: 'Phosphoric Acid', formula: 'H₃PO₄', ingredients: [{z:1, count:3}, {z:15, count:1}, {z:8, count:4}] },
+    { id: 'ch3cooh', name: 'Acetic Acid', formula: 'CH₃COOH', ingredients: [{z:6, count:2}, {z:1, count:4}, {z:8, count:2}] },
+    { id: 'ch2o2', name: 'Formic Acid', formula: 'CH₂O₂', ingredients: [{z:6, count:1}, {z:1, count:2}, {z:8, count:2}] },
+    { id: 'hcn', name: 'Hydrogen Cyanide', formula: 'HCN', ingredients: [{z:1, count:1}, {z:6, count:1}, {z:7, count:1}] },
+    { id: 'h2s', name: 'Hydrogen Sulfide', formula: 'H₂S', ingredients: [{z:1, count:2}, {z:16, count:1}] },
+
+    // --- ALKANES & HYDROCARBONS (15-21) ---
+    { id: 'c2h6', name: 'Ethane', formula: 'C₂H₆', ingredients: [{z:6, count:2}, {z:1, count:6}] },
+    { id: 'c3h8', name: 'Propane', formula: 'C₃H₈', ingredients: [{z:6, count:3}, {z:1, count:8}] },
+    { id: 'c4h10', name: 'Butane', formula: 'C₄H₁₀', ingredients: [{z:6, count:4}, {z:1, count:10}] },
+    { id: 'c2h4', name: 'Ethylene', formula: 'C₂H₄', ingredients: [{z:6, count:2}, {z:1, count:4}] },
+    { id: 'c2h2', name: 'Acetylene', formula: 'C₂H₂', ingredients: [{z:6, count:2}, {z:1, count:2}] },
+    { id: 'c3h4', name: 'Propyne', formula: 'C₃H₄', ingredients: [{z:6, count:3}, {z:1, count:4}] },
+    { id: 'c4h6', name: 'Butadiene', formula: 'C₄H₆', ingredients: [{z:6, count:4}, {z:1, count:6}] },
+
+    // --- ALCOHOLS & SOLVENTS (22-28) ---
+    { id: 'ch3oh', name: 'Methanol', formula: 'CH₃OH', ingredients: [{z:6, count:1}, {z:1, count:4}, {z:8, count:1}] },
+    { id: 'c2h5oh', name: 'Ethanol', formula: 'C₂H₅OH', ingredients: [{z:6, count:2}, {z:1, count:6}, {z:8, count:1}] },
+    { id: 'c3h6o', name: 'Acetone', formula: 'C₃H₆O', ingredients: [{z:6, count:3}, {z:1, count:6}, {z:8, count:1}] },
+    { id: 'ch2o', name: 'Formaldehyde', formula: 'CH₂O', ingredients: [{z:6, count:1}, {z:1, count:2}, {z:8, count:1}] },
+    { id: 'ccl4', name: 'Carbon Tetrachloride', formula: 'CCl₄', ingredients: [{z:6, count:1}, {z:17, count:4}] },
+    { id: 'chcl3', name: 'Chloroform', formula: 'CHCl₃', ingredients: [{z:6, count:1}, {z:1, count:1}, {z:17, count:3}] },
+    { id: 'c6h6', name: 'Benzene', formula: 'C₆H₆', ingredients: [{z:6, count:6}, {z:1, count:6}] },
+
+    // --- NITROGEN COMPOUNDS (29-35) ---
+    { id: 'n2h4', name: 'Hydrazine', formula: 'N₂H₄', ingredients: [{z:7, count:2}, {z:1, count:4}] },
+    { id: 'no2', name: 'Nitrogen Dioxide', formula: 'NO₂', ingredients: [{z:7, count:1}, {z:8, count:2}] },
+    { id: 'n2o', name: 'Nitrous Oxide', formula: 'N₂O', ingredients: [{z:7, count:2}, {z:8, count:1}] },
+    { id: 'ch4n2o', name: 'Urea', formula: 'CH₄N₂O', ingredients: [{z:6, count:1}, {z:1, count:4}, {z:7, count:2}, {z:8, count:1}] },
+    { id: 'c2h5no2', name: 'Glycine', formula: 'C₂H₅NO₂', ingredients: [{z:6, count:2}, {z:1, count:5}, {z:7, count:1}, {z:8, count:2}] },
+    { id: 'c2n2', name: 'Cyanogen', formula: 'C₂N₂', ingredients: [{z:6, count:2}, {z:7, count:2}] },
+    { id: 'ncl3', name: 'Nitrogen Trichloride', formula: 'NCl₃', ingredients: [{z:7, count:1}, {z:17, count:3}] },
+
+    // --- EXOTIC & INDUSTRIAL (36-42) ---
+    { id: 'sf6', name: 'Sulfur Hexafluoride', formula: 'SF₆', ingredients: [{z:16, count:1}, {z:9, count:6}] },
+    { id: 'xef4', name: 'Xenon Tetrafluoride', formula: 'XeF₄', ingredients: [{z:54, count:1}, {z:9, count:4}] },
+    { id: 'pcl5', name: 'Phosphorus Pentachloride', formula: 'PCl₅', ingredients: [{z:15, count:1}, {z:17, count:5}] },
+    { id: 'clf3', name: 'Chlorine Trifluoride', formula: 'ClF₃', ingredients: [{z:17, count:1}, {z:9, count:3}] },
+    { id: 'cocl2', name: 'Phosgene', formula: 'COCl₂', ingredients: [{z:6, count:1}, {z:8, count:1}, {z:17, count:2}] },
+    { id: 'c6h12', name: 'Cyclohexane', formula: 'C₆H₁₂', ingredients: [{z:6, count:6}, {z:1, count:12}] },
+    { id: 'c5h5n', name: 'Pyridine', formula: 'C₅H₅N', ingredients: [{z:6, count:5}, {z:1, count:5}, {z:7, count:1}] }
+];
+
 export const SUBSTEPS = 8; 
 export const MAX_SPEED = 20; 
 
 // --- PHYSICS CONSTANTS ---
-export const DRAG_COEFF = 0.95; 
+
+/**
+ * Global Air Resistance (Drag).
+ * Applied every physics substep.
+ * 
+ * Mathematical Model:
+ * Velocity(t+1) = Velocity(t) * DRAG_COEFF
+ * Frame Decay = DRAG_COEFF ^ SUBSTEPS
+ * 0.990 ^ 8 ≈ 0.92 (Atoms lose ~8% velocity per frame).
+ */
+export const DRAG_COEFF = 0.990; 
+
 export const BOND_STIFFNESS = 0.6; 
-export const BOND_DAMPING = 0.2;   
+
+/**
+ * Damping factor for bonds to reduce oscillation.
+ * Acts like a shock absorber.
+ */
+export const BOND_DAMPING = 0.5;   
+
 export const REACTION_THRESHOLD_SQ = 20; 
 
 // --- VSEPR CONSTANTS ---
+
 export const ANGULAR_STIFFNESS = 1.0; 
 
-// Set of Atomic Numbers (Z) that act as covalent non-metals
 export const COVALENT_Z = new Set([
     1, 2, // H, He
     5, 6, 7, 8, 9, 10, // B, C, N, O, F, Ne

@@ -9,6 +9,17 @@ interface RecipePickerProps {
   onSelect: (recipe: Recipe) => void;
 }
 
+/**
+ * RecipePicker Component
+ * 
+ * Displays a visual catalog of predefined molecular recipes.
+ * 
+ * Visual Logic:
+ * - Renders a grid of cards, each representing a chemical compound.
+ * - Dynamically generates visual previews using colored dots based on the 
+ *   recipe's stoichiometry (e.g., Water = 2 White Dots [H], 1 Red Dot [O]).
+ * - Clicking a recipe triggers the "Super Crunch" gravity well effect in the Canvas.
+ */
 const RecipePicker: React.FC<RecipePickerProps> = ({ isOpen, onClose, onSelect }) => {
   if (!isOpen) return null;
 

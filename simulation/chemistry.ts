@@ -5,7 +5,19 @@ import { COVALENT_Z, MAX_SPEED, BOND_STIFFNESS, BOND_DAMPING, REACTION_THRESHOLD
 import { addBond, breakBond, decrementBond, getBondOrder } from './utils';
 import { getTargetGeometry } from './vsepr';
 
-// Helper to create particles
+/**
+ * simulation/chemistry.ts
+ * 
+ * The Core "Chemistry Engine".
+ * 
+ * This file handles the logic for:
+ * 1. Annealing: Correcting bad bond configurations (Local Minima).
+ * 2. Interactions: Resolving forces, collisions, and chemical reactions.
+ * 3. Decay: Handling nuclear half-lives and transmutation.
+ */
+
+// --- Particle Effects ---
+
 export const createExplosion = (particles: Particle[], x: number, y: number, color: string, count: number) => {
     for (let i = 0; i < count; i++) {
       const angle = Math.random() * Math.PI * 2;
@@ -24,12 +36,18 @@ export const createExplosion = (particles: Particle[], x: number, y: number, col
     }
 };
 
-// --- Reconfiguration / Annealing ---
-export const annealAtoms = (atoms: Atom[]) => {
+// --- Layer 1: Annealing (Error Correction) ---
+
+/**
+ * Intelligently reconfigures bonds to escape local minima.
+ */
+export const annealAtoms = (atoms: Atom[], dragGroup: Set<string> | null = null) => {
     const atomCount = atoms.length;
     for (let i = 0; i < atomCount; i++) {
         const a = atoms[i];
         if (a.bonds.length === 0) continue;
+
+        if (dragGroup && dragGroup.has(a.id)) continue;
 
         // RULE 1: HOMONUCLEAR RECONFIGURATION
         const homonuclearBondId = a.bonds.find(bid => {
@@ -115,8 +133,9 @@ export const annealAtoms = (atoms: Atom[]) => {
     }
 };
 
-// --- Physics Interactions (Bonds, Collisions, Reactions) ---
-export const resolveInteractions = (atoms: Atom[], particles: Particle[], dragId: string | null) => {
+// --- Layer 2: Interactions (Physics & Chemistry) ---
+
+export const resolveInteractions = (atoms: Atom[], particles: Particle[], dragId: string | null, dragGroup: Set<string> | null) => {
     const atomCount = atoms.length;
     for (let i = 0; i < atomCount; i++) {
         const a = atoms[i];
@@ -134,7 +153,10 @@ export const resolveInteractions = (atoms: Atom[], particles: Particle[], dragId
             if (!isBonded && distSq > (combinedRadius * 3)**2) continue;
             const dist = Math.sqrt(distSq) || 0.001;
 
-            if (isBonded && dist > combinedRadius * 12) {
+            const isBondProtected = dragGroup ? (dragGroup.has(a.id) && dragGroup.has(b.id)) : false;
+            const isReactionBlocked = dragGroup ? (dragGroup.has(a.id) || dragGroup.has(b.id)) : false;
+            
+            if (!isBondProtected && isBonded && dist > combinedRadius * 12) {
                 breakBond(atoms, a, b.id);
                 continue;
             }
@@ -163,10 +185,24 @@ export const resolveInteractions = (atoms: Atom[], particles: Particle[], dragId
                 const rvy = b.vy - a.vy;
                 const vRelNormal = rvx * nx + rvy * ny;
 
-                const force = (displacement * BOND_STIFFNESS * bondOrder) + (vRelNormal * BOND_DAMPING);
+                // Tangential Damping (Friction against rotation)
+                // Opposes relative motion perpendicular to the bond.
+                const tx = -ny;
+                const ty = nx;
+                const vRelTangent = rvx * tx + rvy * ty;
+                
+                // Reduced damping to prevent instability
+                const rotDamp = 0.05; 
 
-                const fx = nx * force;
-                const fy = ny * force;
+                const springForce = (displacement * BOND_STIFFNESS * bondOrder);
+                // Reduced damping to prevent instability
+                const dampForce = (vRelNormal * 0.1); 
+                const normalTotal = springForce + dampForce;
+                
+                const tangentTotal = vRelTangent * rotDamp;
+
+                const fx = (nx * normalTotal) + (tx * tangentTotal);
+                const fy = (ny * normalTotal) + (ty * tangentTotal);
 
                 a.vx += fx * invMassA;
                 a.vy += fy * invMassA;
@@ -176,7 +212,7 @@ export const resolveInteractions = (atoms: Atom[], particles: Particle[], dragId
             // 2. COLLISION FORCES
             else if (dist < combinedRadius) {
                 const overlap = combinedRadius - dist;
-                const springForce = overlap * 0.15;
+                const springForce = overlap * 0.15; 
 
                 const rvx = b.vx - a.vx;
                 const rvy = b.vy - a.vy;
@@ -198,7 +234,7 @@ export const resolveInteractions = (atoms: Atom[], particles: Particle[], dragId
             }
 
             // 3. CHEMISTRY LOGIC
-            if (dist < combinedRadius * 1.5) {
+            if (!isReactionBlocked && dist < combinedRadius * 1.5) {
                 const rvx = b.vx - a.vx;
                 const rvy = b.vy - a.vy;
                 const vRelSq = rvx*rvx + rvy*rvy;
@@ -209,7 +245,7 @@ export const resolveInteractions = (atoms: Atom[], particles: Particle[], dragId
                 const aFree = aMax - a.bonds.length;
                 const bFree = bMax - b.bonds.length;
                 
-                // 3A. Simple Bonding
+                // 3A. Simple Bonding (Low Energy)
                 if (bondOrder < 3 && aFree > 0 && bFree > 0) {
                     const hasBetterOption = (subject: Atom, ignoreId: string, minValency: number) => {
                          const searchRadius = Math.max(subject.radius * 8.0, 100);
@@ -234,12 +270,10 @@ export const resolveInteractions = (atoms: Atom[], particles: Particle[], dragId
                     let isBlocked = false;
 
                     if (bondOrder === 0) {
-                         // Hub Priority (Homonuclear only)
                          if (a.element.z === b.element.z) {
                              if (hasBetterOption(a, b.id, bMax + 1)) isBlocked = true;
                              if (hasBetterOption(b, a.id, aMax + 1)) isBlocked = true;
                          }
-                         // Acidic Priority Guard
                          if (!isBlocked) {
                              const aIsH = a.element.z === 1;
                              const bIsH = b.element.z === 1;
@@ -251,7 +285,6 @@ export const resolveInteractions = (atoms: Atom[], particles: Particle[], dragId
                          }
 
                     } else {
-                         // Sigma Priority
                          if (hasBetterOption(a, b.id, 1) || hasBetterOption(b, a.id, 1)) {
                              isBlocked = true;
                          }
@@ -263,8 +296,7 @@ export const resolveInteractions = (atoms: Atom[], particles: Particle[], dragId
                         if (commonNeighborId) {
                             const c = atoms.find(at => at.id === commonNeighborId);
                             if (c) {
-                                // Simple steric check: if C needs >85 degrees, don't form triangle
-                                const Ve = (COVALENT_Z.has(c.element.z) ? c.element.v : null) || 0; // Approx logic
+                                const Ve = (COVALENT_Z.has(c.element.z) ? c.element.v : null) || 0;
                                 const electronsFree = Ve - c.bonds.length;
                                 const lp = Math.max(0, Math.floor(electronsFree / 2));
                                 const { angle: idealAngle } = getTargetGeometry(c.bonds.length, lp);
@@ -277,7 +309,7 @@ export const resolveInteractions = (atoms: Atom[], particles: Particle[], dragId
                         }
                     }
                 }
-                // 3B. Kinetic Insertion
+                // 3B. Kinetic Insertion (High Energy)
                 else if (!isBonded && vRelSq > REACTION_THRESHOLD_SQ && aFree >= 2) {
                     if (b.bonds.length === 1) { 
                         const partnerId = b.bonds[0];
@@ -297,7 +329,7 @@ export const resolveInteractions = (atoms: Atom[], particles: Particle[], dragId
                         }
                     }
                 }
-                // 3C. Impact Dissociation
+                // 3C. Impact Dissociation (High Energy)
                 else if (!isBonded && vRelSq > REACTION_THRESHOLD_SQ) {
                      const tryDissociate = (atom: Atom) => {
                          const maxV = COVALENT_Z.has(atom.element.z) ? atom.element.v : 6;
@@ -322,45 +354,41 @@ export const resolveInteractions = (atoms: Atom[], particles: Particle[], dragId
     }
 };
 
-export const processDecay = (atoms: Atom[], particles: Particle[], frameDt: number) => {
-    for (let i = atoms.length - 1; i >= 0; i--) {
-        const atom = atoms[i];
-        const iso = atom.element.iso[atom.isotopeIndex];
+export const processDecay = (atoms: Atom[], particles: Particle[], dt: number) => {
+    const count = atoms.length;
+    for (let i = 0; i < count; i++) {
+        const a = atoms[i];
+        const iso = a.element.iso[a.isotopeIndex];
         
-        if (iso.hl !== "stable") {
-           const prob = 1 - Math.pow(2, -frameDt / iso.hl);
-           
-           if (Math.random() < prob) {
-             const productData = iso.p;
-             if (productData) {
-                createExplosion(particles, atom.x, atom.y, iso.mode === 'alpha' ? '#FFD700' : '#00BFFF', 20);
-                
-                const productElement = ELEMENTS.find(e => e.z === productData.z);
-                
-                if (productElement) {
-                    let productIsoIdx = productElement.iso.findIndex(iso => Math.abs(iso.m - productData.m) < 0.1);
-                    if (productIsoIdx === -1) productIsoIdx = 0;
+        if (iso.hl === 'stable') continue;
 
-                    const kick = 3; 
+        const lambda = 0.693 / (iso.hl as number);
+        const p = 1 - Math.exp(-lambda * dt);
+
+        if (Math.random() < p) {
+            const color = iso.mode === 'alpha' ? '#FFE066' : '#66E0FF'; 
+            createExplosion(particles, a.x, a.y, color, 12);
+
+            if (iso.p) {
+                const productZ = iso.p.z;
+                const productM = iso.p.m;
+                const newElem = ELEMENTS.find(e => e.z === productZ);
+                
+                if (newElem) {
+                    let newIsoIndex = newElem.iso.findIndex(iso => Math.abs(iso.m - productM) < 0.1);
+                    if (newIsoIndex === -1) newIsoIndex = 0;
+
+                    a.element = newElem;
+                    a.isotopeIndex = newIsoIndex;
+                    a.mass = newElem.iso[newIsoIndex].m;
+                    a.radius = 10 + Math.pow(a.mass, 0.33) * 3;
+
                     const angle = Math.random() * Math.PI * 2;
-                    
-                    atom.element = productElement;
-                    atom.isotopeIndex = productIsoIdx;
-                    atom.mass = productElement.iso[productIsoIdx].m;
-                    atom.radius = 10 + Math.pow(atom.mass, 0.33) * 3;
-                    atom.vx += Math.cos(angle) * kick;
-                    atom.vy += Math.sin(angle) * kick;
-                    
-                    atom.bonds.forEach(bondedId => {
-                        const partner = atoms.find(a => a.id === bondedId);
-                        if (partner) partner.bonds = partner.bonds.filter(bid => bid !== atom.id);
-                    });
-                    atom.bonds = [];
-                } else {
-                    atoms.splice(i, 1);
+                    const recoil = 20 / a.mass; 
+                    a.vx += Math.cos(angle) * recoil * 10;
+                    a.vy += Math.sin(angle) * recoil * 10;
                 }
-             }
-           }
+            }
         }
     }
 };

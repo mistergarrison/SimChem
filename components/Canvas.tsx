@@ -18,6 +18,27 @@ interface CanvasProps {
   recipeRequest: { recipe: Recipe; id: number } | null;
 }
 
+/**
+ * Canvas Component
+ * 
+ * The critical bridge between React's Declarative UI and the Imperative Physics Simulation.
+ * 
+ * Architectural Pattern: "The Game Loop Shell"
+ * 
+ * 1. **React's Role**: 
+ *    - Handles high-level state (e.g., Time Scale slider, incoming Spawn Requests).
+ *    - Renders the <canvas> DOM element.
+ *    - Sets up Event Listeners (Pointer, Drag/Drop).
+ * 
+ * 2. **Mutable State via Refs**:
+ *    - `atomsRef` and `particlesRef` store the heavy simulation data. 
+ *    - We DO NOT use React State (`useState`) for atom positions because triggering 
+ *      a React Re-render 60 times a second for 100+ objects would destroy performance.
+ * 
+ * 3. **The Loop (`update`)**:
+ *    - A `requestAnimationFrame` loop runs independently of React.
+ *    - It executes the Physics Logic (imported from `simulation/`) and then the Renderer.
+ */
 const Canvas: React.FC<CanvasProps> = ({
   timeScale,
   isPlaying,
@@ -27,11 +48,11 @@ const Canvas: React.FC<CanvasProps> = ({
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   
-  // Mutable state for physics bodies
+  // Mutable state for physics bodies (High performance, No re-renders)
   const atomsRef = useRef<Atom[]>([]);
   const particlesRef = useRef<Particle[]>([]);
   
-  // Interaction state
+  // Interaction state (Mouse/Touch tracking)
   const mouseRef = useRef<MouseState>({ 
       x: 0, y: 0, 
       lastX: 0, lastY: 0,
@@ -59,7 +80,7 @@ const Canvas: React.FC<CanvasProps> = ({
     }
   }, [clearTrigger]);
 
-  // Handle Single Spawn
+  // Handle Single Spawn (Triggered by Sidebar tap/drop)
   useEffect(() => {
     if (spawnRequest && canvasRef.current) {
         const width = canvasRef.current.width;
@@ -82,7 +103,7 @@ const Canvas: React.FC<CanvasProps> = ({
     }
   }, [spawnRequest]);
 
-  // Handle Recipe Spawn
+  // Handle Recipe Spawn (Triggered by Recipe Picker)
   useEffect(() => {
       if (recipeRequest && canvasRef.current) {
           const width = canvasRef.current.width;
@@ -92,7 +113,7 @@ const Canvas: React.FC<CanvasProps> = ({
           const clearRadius = 250;
           const spawnRadius = 80;
 
-          // 1. Clear Area
+          // 1. Clear Area: Push existing atoms away to make room
           const allAtoms = atomsRef.current;
           const visited = new Set<string>();
 
@@ -152,7 +173,7 @@ const Canvas: React.FC<CanvasProps> = ({
               }
           });
 
-          // 3. Setup Recipe "Gravity Well"
+          // 3. Setup Recipe "Gravity Well" (The Super Crunch)
           const duration = 30; 
           mouseRef.current.recipeTarget = {
              ids: newAtoms.map(a => a.id),
@@ -220,16 +241,17 @@ const Canvas: React.FC<CanvasProps> = ({
     const width = canvas.width;
     const height = canvas.height;
     
-    // Mouse Momentum
+    // Mouse Momentum Calculation (for "Throwing" atoms)
     const mouseDx = mouseRef.current.x - mouseRef.current.lastX;
     const mouseDy = mouseRef.current.y - mouseRef.current.lastY;
     mouseRef.current.lastX = mouseRef.current.x;
     mouseRef.current.lastY = mouseRef.current.y;
     
-    const alpha = 0.3;
+    const alpha = 0.5; // Tuned for snappier throw release
     mouseRef.current.vx = mouseRef.current.vx * (1 - alpha) + mouseDx * alpha;
     mouseRef.current.vy = mouseRef.current.vy * (1 - alpha) + mouseDy * alpha;
 
+    // Cursor Styling
     if (mouseRef.current.isLassoing) canvas.style.cursor = 'crosshair';
     else if (mouseRef.current.isDown) canvas.style.cursor = 'grabbing';
     else if (mouseRef.current.hoverId) canvas.style.cursor = 'grab';
@@ -248,21 +270,49 @@ const Canvas: React.FC<CanvasProps> = ({
       // 2. RADIOACTIVE DECAY
       processDecay(atomsRef.current, particlesRef.current, 0.016 * timeScale);
 
-      // 3. PHYSICS SUBSTEPS
+      // --- DYNAMIC DRAG GROUP REFRESH ---
+      if (mouseRef.current.isDown && mouseRef.current.dragId) {
+          const exists = atomsRef.current.some(a => a.id === mouseRef.current.dragId);
+          if (!exists) {
+              mouseRef.current.dragId = null;
+              mouseRef.current.isDown = false;
+              mouseRef.current.dragGroup.clear();
+          } else {
+              mouseRef.current.dragGroup = getMoleculeGroup(atomsRef.current, mouseRef.current.dragId);
+          }
+      }
+
+      // 3. PHYSICS SUBSTEPS (Running physics 8x per frame for stability)
       for (let step = 0; step < SUBSTEPS; step++) {
           
           // A. Annealing
-          annealAtoms(atomsRef.current);
+          annealAtoms(atomsRef.current, mouseRef.current.dragGroup);
 
-          // B. Mouse Drag Force 
+          // B. RIGID GROUP DRAG
+          // Prevents molecule stretching and spin by applying the drag force 
+          // to ALL atoms in the molecule equally.
           if (mouseRef.current.isDown && mouseRef.current.dragId) {
-              const a = atomsRef.current.find(atom => atom.id === mouseRef.current.dragId);
-              if (a) {
-                  const k = 0.2; 
-                  a.vx += (mouseRef.current.x - a.x) * k;
-                  a.vy += (mouseRef.current.y - a.y) * k;
-                  a.vx *= 0.8;
-                  a.vy *= 0.8;
+              const draggedAtom = atomsRef.current.find(atom => atom.id === mouseRef.current.dragId);
+              if (draggedAtom) {
+                  // Calculate the vector from the Handle to the Mouse cursor
+                  const dx = mouseRef.current.x - draggedAtom.x;
+                  const dy = mouseRef.current.y - draggedAtom.y;
+                  const k = 0.2; // Drag stiffness
+
+                  // Apply this vector force to EVERY atom in the drag group.
+                  // This simulates grabbing the whole rigid body, not just one point.
+                  mouseRef.current.dragGroup.forEach(id => {
+                      const a = atomsRef.current.find(at => at.id === id);
+                      if (a) {
+                          a.vx += dx * k;
+                          a.vy += dy * k;
+                          
+                          // Stable Damping for the dragged group
+                          // Helps them stop exactly at the mouse pointer without overshoot
+                          a.vx *= 0.90; 
+                          a.vy *= 0.90;
+                      }
+                  });
               }
           }
 
@@ -297,14 +347,14 @@ const Canvas: React.FC<CanvasProps> = ({
                  }
               });
               
-              mouseRef.current.recipeHaloLife -= (1 / SUBSTEPS); // Decay per substep or frame? Frame is better.
+              mouseRef.current.recipeHaloLife -= (1 / SUBSTEPS); 
           }
           
           // D. VSEPR
-          applyVSEPR(atomsRef.current, mouseRef.current.dragId);
+          applyVSEPR(atomsRef.current, mouseRef.current.dragGroup);
 
-          // E. ATOM-ATOM INTERACTIONS
-          resolveInteractions(atomsRef.current, particlesRef.current, mouseRef.current.dragId);
+          // E. INTERACTIONS
+          resolveInteractions(atomsRef.current, particlesRef.current, mouseRef.current.dragId, mouseRef.current.dragGroup);
 
           // F. INTEGRATION
           const atomCount = atomsRef.current.length;
@@ -323,6 +373,7 @@ const Canvas: React.FC<CanvasProps> = ({
               a.x += a.vx;
               a.y += a.vy;
 
+              // Wall Bouncing
               const restitution = 0.5;
               if (a.x < a.radius) { a.x = a.radius; a.vx = Math.abs(a.vx) * restitution; }
               else if (a.x > width - a.radius) { a.x = width - a.radius; a.vx = -Math.abs(a.vx) * restitution; }
@@ -330,14 +381,11 @@ const Canvas: React.FC<CanvasProps> = ({
               else if (a.y > height - a.radius) { a.y = height - a.radius; a.vy = -Math.abs(a.vy) * restitution; }
           }
       }
-      // Correcting Life Decay (doing it once per frame in render or here?)
-      // We decremented `recipeHaloLife` fractionally in loop, checking clean up:
+      
       if (mouseRef.current.recipeHaloLife <= 0) mouseRef.current.recipeTarget = null;
     }
 
-    // --- RENDERING PHASE ---
     renderCanvas(ctx, atomsRef.current, particlesRef.current, mouseRef.current, width, height);
-    
     rafRef.current = requestAnimationFrame(update);
   }, [isPlaying, timeScale]);
 
@@ -435,6 +483,23 @@ const Canvas: React.FC<CanvasProps> = ({
           }
           mouseRef.current.isLassoing = false;
           mouseRef.current.lassoPoints = [];
+      }
+
+      // FLING LOGIC
+      // Overwrites velocity for the entire group with the mouse's throw vector.
+      // This kills any internal "spin" velocity accumulated during drag.
+      if (mouseRef.current.isDown && mouseRef.current.dragGroup.size > 0) {
+          const flingMultiplier = 1.0 / SUBSTEPS; 
+          const mvx = mouseRef.current.vx * flingMultiplier;
+          const mvy = mouseRef.current.vy * flingMultiplier;
+          
+          mouseRef.current.dragGroup.forEach(id => {
+              const atom = atomsRef.current.find(a => a.id === id);
+              if (atom) {
+                  atom.vx = mvx;
+                  atom.vy = mvy;
+              }
+          });
       }
 
       mouseRef.current.isDown = false;
